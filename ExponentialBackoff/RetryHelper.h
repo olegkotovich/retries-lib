@@ -2,11 +2,7 @@
 #include <functional>
 #include <random>
 #include <typeinfo> 
-
-class MyException : public std::exception
-{
-
-};
+#include <algorithm>
 
 template <typename T>
 class RetryHelper
@@ -27,14 +23,9 @@ class RetryHelper
             return this;
         }
 
-        template <class E>
-        inline RetryHelper * RetryIfExceptionOfType()
+        inline RetryHelper* RetryIfAnyException()
         {
-            static_assert(std::is_base_of<std::exception, E>::value, "type parameter of this function must derive from std::exception");
-
-            const std::type_info* exceptionTypeInfo = &typeid(E);
-
-            expectedExceptions.push_back(exceptionTypeInfo);
+			this->retryIfAnyException = true;
             return this;
         }
 
@@ -44,8 +35,9 @@ class RetryHelper
             int spentTime = 0;
             while (true)
             {
-                bool isSuccess = ExecuteFunc(func);
-                if (isSuccess) break;
+                bool shouldContinue = ExecuteFunc(func);
+
+				if (!shouldContinue) break;
 
                 Sleep(delay);
                 spentTime += delay;
@@ -63,18 +55,19 @@ class RetryHelper
         {
             try
             {
-                func();
+                auto result = func();
+				if (std::any_of(expectedResults.begin(), expectedResults.end(), [&](T item){return item == result; }))
+				{
+					return true;
+				}
+				return false;
             }
             catch (...)
             {
-            	auto currentException = std::current_exception();
-                const std::type_info& exceptionTypeInfo = typeid(currentException);
-                for (auto &savedExceptionTypeInfo : expectedExceptions)
-                {
-                    if (savedExceptionTypeInfo)
-                    {
-                    }
-                }
+				if (!retryIfAnyException)
+				{
+					throw;
+				}
             }
            return true;
         }
@@ -87,5 +80,5 @@ class RetryHelper
         double jitter;
 
         std::vector<T> expectedResults;
-        std::vector<const std::type_info *> expectedExceptions;
+		bool retryIfAnyException;
 };

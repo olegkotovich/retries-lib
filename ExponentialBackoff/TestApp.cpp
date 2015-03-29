@@ -7,20 +7,21 @@
 
 using namespace std;
 
-bool ConnectInternal(LPCTSTR server)
+int ConnectInternal(LPCTSTR server)
 {
-    return false;
+	//throw "fvdfvdf";
+    return 3;
 }
 
 bool Connect(LPCTSTR server)
 {
     auto fn = [&]() { return ConnectInternal(server); };
 
-    RetryHelper<bool>helper(1000, 100000, 180*1000, 1.5, 0.1);
+    RetryHelper<int>helper(1000, 100000, 180*1000, 1.5, 0.1);
 
-    helper.RetryIfResult(true)
-        ->RetryIfExceptionOfType<MyException>()
-        ->RetryIfExceptionOfType<std::bad_alloc>()
+    helper.RetryIfResult(1)
+        ->RetryIfAnyException()
+		->RetryIfResult(3)
         ->Retry(fn);
 
     return false;
