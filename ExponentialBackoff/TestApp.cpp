@@ -20,9 +20,9 @@ bool Connect(LPCTSTR server)
 
 	std::unique_ptr<ExponentialBackoffRetryer<int>> retrier(new ExponentialBackoffRetryer<int>(500, 60*1000, 300*1000, 1.2, 0.01));
 
-    retrier->RetryIfResult(1)
+    int result = retrier
            ->RetryIfAnyException()
-		   ->RetryIfResult(3)
+		   ->RetryIfResult([](int result)->bool{return result == 3;})
            ->Retry(fn);
 
     return false;

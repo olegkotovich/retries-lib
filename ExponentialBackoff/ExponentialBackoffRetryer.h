@@ -17,11 +17,12 @@ class ExponentialBackoffRetryer
             _jitter = jitter;
 			_spentTime = 0;
 			_retryIfAnyException = false;
+			_checkResultFunc = nullptr;
         }
 
-        inline ExponentialBackoffRetryer* RetryIfResult(T value)
+        inline ExponentialBackoffRetryer* RetryIfResult(std::function<bool(T result)> func)
         {
-            _expectedResults.push_back(value);
+            _checkResultFunc = func;
             return this;
         }
 
@@ -34,7 +35,7 @@ class ExponentialBackoffRetryer
         inline T Retry(std::function<T()> func)
         {
             auto delay = _minDelay;
-			T result;
+			T result = T();
             while (true)
             {
                 bool shouldContinue = ExecuteFunc(func, result);
@@ -57,7 +58,7 @@ class ExponentialBackoffRetryer
         double _jitter;
 
 		int _spentTime;
-        std::vector<T> _expectedResults;
+        std::function<bool(T result)> _checkResultFunc;
 		bool _retryIfAnyException;
 
 		inline int CalculateNextDelay(int currentDelay)
@@ -70,7 +71,7 @@ class ExponentialBackoffRetryer
 			auto randomPart = distribution(prng);
 
 			delay += randomPart;
-			//printf("%i\n", (int)delay);
+			printf("%i\n", (int)delay);
 			return (int)delay;
 		}
 
@@ -80,9 +81,9 @@ class ExponentialBackoffRetryer
             {
                 returnValue = func();
 				
-				auto isExpectedResult = std::any_of(_expectedResults.begin(), _expectedResults.end(), [&](T item){return item == returnValue;});
+				auto shouldRetry = _checkResultFunc(returnValue);
 
-				if(isExpectedResult && _spentTime <= _maxRetryTime)
+				if(shouldRetry && _spentTime <= _maxRetryTime)
 				{
 					return true;
 				}
