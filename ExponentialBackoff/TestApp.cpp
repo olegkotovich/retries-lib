@@ -2,8 +2,9 @@
 //
 
 #include "stdafx.h"
-#include "RetryHelper.h"
+#include "ExponentialBackoffRetryer.h"
 #include <iostream>
+#include <memory>
 
 using namespace std;
 
@@ -17,12 +18,12 @@ bool Connect(LPCTSTR server)
 {
     auto fn = [&]() { return ConnectInternal(server); };
 
-    RetryHelper<int>helper(1000, 100000, 180*1000, 1.5, 0.1);
+	std::unique_ptr<ExponentialBackoffRetryer<int>> retrier(new ExponentialBackoffRetryer<int>(100, 10000, 20000, 1.2, 0.1));
 
-    helper.RetryIfResult(1)
-        ->RetryIfAnyException()
-		->RetryIfResult(3)
-        ->Retry(fn);
+    retrier->RetryIfResult(1)
+           ->RetryIfAnyException()
+		   ->RetryIfResult(3)
+           ->Retry(fn);
 
     return false;
 }
