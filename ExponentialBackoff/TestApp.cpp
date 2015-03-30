@@ -18,12 +18,13 @@ bool Connect(LPCTSTR server)
 {
     auto fn = [&]() { return ConnectInternal(server); };
 
-	std::unique_ptr<ExponentialBackoffRetryer<int>> retrier(new ExponentialBackoffRetryer<int>(500, 60*1000, 300*1000, 1.2, 0.01));
+	std::unique_ptr<ExponentialBackoffRetryer> retrier(new ExponentialBackoffRetryer(500, 60*1000, 300*1000, 1.2, 0.01));
 
-    int result = retrier
-           ->RetryIfAnyException()
-		   ->RetryIfResult([](int result)->bool{return result == 3;})
-           ->Retry(fn);
+	retrier
+		->RetryIfAnyException()
+		//->Retry(fn);
+		->WaitFor<int>([](int result)->bool{return result == 2; }, fn);
+ //          ->Retry(fn);
 
     return false;
 }

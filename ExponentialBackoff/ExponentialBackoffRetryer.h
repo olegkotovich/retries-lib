@@ -4,104 +4,117 @@
 #include <typeinfo> 
 #include <algorithm>
 
-template <typename T>
 class ExponentialBackoffRetryer
 {
-    public:
-        inline ExponentialBackoffRetryer(int minDelay, int maxDelay, int maxRetryTime, double multiplier , double jitter)
-        {
-            _minDelay = minDelay;
-            _maxDelay = maxDelay;
-            _maxRetryTime = maxRetryTime;
-            _multiplier  = multiplier;
-            _jitter = jitter;
-			_spentTime = 0;
-			_retryIfAnyException = false;
-			_checkResultFunc = nullptr;
-        }
+public:
+	inline ExponentialBackoffRetryer(int minDelay, int maxDelay, int maxRetryTime, double multiplier, double jitter)
+	{
+		_minDelay = minDelay;
+		_maxDelay = maxDelay;
+		_maxRetryTime = maxRetryTime;
+		_multiplier = multiplier;
+		_jitter = jitter;
+		_spentTime = 0;
+		_retryIfAnyException = false;
+	}
 
-        inline ExponentialBackoffRetryer* RetryIfResult(std::function<bool(T result)> func)
-        {
-            _checkResultFunc = func;
-            return this;
-        }
+	inline ExponentialBackoffRetryer* RetryIfAnyException()
+	{
+		this->_retryIfAnyException = true;
+		return this;
+	}
 
-        inline ExponentialBackoffRetryer* RetryIfAnyException()
-        {
-			this->_retryIfAnyException = true;
-            return this;
-        }
-
-        inline T Retry(std::function<T()> func)
-        {
-            auto delay = _minDelay;
-			T result = T();
-            while (true)
-            {
-                bool shouldContinue = ExecuteFunc(func, result);
-
-				if (!shouldContinue) break;
-
-                Sleep(delay);
-                _spentTime += delay;
-
-				delay = CalculateNextDelay(delay);
-            }
-			return result;
-        }
-        
-    private:
-        int _minDelay;
-        int _maxDelay;
-        double _maxRetryTime;
-        double _multiplier ;
-        double _jitter;
-
-		int _spentTime;
-        std::function<bool(T result)> _checkResultFunc;
-		bool _retryIfAnyException;
-
-		inline int CalculateNextDelay(int currentDelay)
+	template <typename T> inline T WaitFor(std::function<bool(T result)> resultChecker, std::function<T()> func)
+	{
+		auto delay = _minDelay;
+		T result;
+		while (true)
 		{
-			auto delay = min(currentDelay*_multiplier , _maxDelay);
+			bool shouldContinue = ExecuteFunc(func, resultChecker, result);
 
-			std::random_device rd;
-			std::mt19937 prng(rd());
-            std::normal_distribution<double> distribution(delay * _jitter);
-			auto randomPart = distribution(prng);
+			if (!shouldContinue) break;
 
-			delay += randomPart;
-			printf("%i\n", (int)delay);
-			return (int)delay;
+			Sleep(delay);
+			_spentTime += delay;
+
+			delay = CalculateNextDelay(delay);
 		}
+		return result;
+	}
 
-		inline bool ExecuteFunc(std::function<T()> func, T &returnValue)
-        {
-            try
-            {
-                returnValue = func();
-				
-				auto shouldRetry = _checkResultFunc(returnValue);
+	inline void Retry(std::function<void()> func)
+	{
+		auto delay = _minDelay;
 
-				if(shouldRetry && _spentTime <= _maxRetryTime)
-				{
-					return true;
-				}
+		while (true)
+		{
+			bool shouldContinue = ExecuteFunc(func);
 
-				if(_spentTime >= _maxRetryTime) 
-				{
-					return false;
-				}
+			if (!shouldContinue) break;
 
-				return false;
-            }
-            catch (...)
-            {
-				if (!_retryIfAnyException || _spentTime >= _maxRetryTime)
-				{
-					throw;
-				}
-            }
-           return true;
-        }
+			Sleep(delay);
+			_spentTime += delay;
+
+			delay = CalculateNextDelay(delay);
+		}
+	}
+
+private:
+	int _minDelay;
+	int _maxDelay;
+	double _maxRetryTime;
+	double _multiplier;
+	double _jitter;
+
+	int _spentTime;
+	bool _retryIfAnyException;
+
+	inline int CalculateNextDelay(int currentDelay)
+	{
+		auto delay = min(currentDelay * _multiplier, _maxDelay);
+
+		std::random_device rd;
+		std::mt19937 prng(rd());
+		std::normal_distribution<double> distribution(delay * _jitter);
+		auto randomPart = distribution(prng);
+
+		delay += randomPart;
+		printf("%i\n", (int)delay);
+		return (int)delay;
+	}
+
+	template <typename T> inline bool ExecuteFunc(std::function<T()> func, std::function<bool(T result)> resultChecker, T &result)
+	{
+		try
+		{
+			result = func();
+			bool isNeededResult = resultChecker(result);
+			return isNeededResult ? false : true;
+		}
+		catch (...)
+		{
+			if (!_retryIfAnyException || _spentTime >= _maxRetryTime)
+			{
+				throw;
+			}
+			return true;
+		}
+	}
+
+	template <typename T> inline bool ExecuteFunc(std::function<T()> func)
+	{
+		try
+		{
+			func();
+			return false;
+		}
+		catch (...)
+		{
+			if (!_retryIfAnyException || _spentTime >= _maxRetryTime)
+			{
+				throw;
+			}
+			return true;
+		}
+	}
 };
