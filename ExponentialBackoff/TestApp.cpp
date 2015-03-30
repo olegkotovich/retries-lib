@@ -18,7 +18,7 @@ bool Connect(LPCTSTR server)
 {
     auto fn = [&]() { return ConnectInternal(server); };
 
-	std::unique_ptr<ExponentialBackoffRetryer<int>> retrier(new ExponentialBackoffRetryer<int>(100, 10000, 20000, 1.2, 0.1));
+	std::unique_ptr<ExponentialBackoffRetryer<int>> retrier(new ExponentialBackoffRetryer<int>(500, 60*1000, 300*1000, 1.2, 0.01));
 
     retrier->RetryIfResult(1)
            ->RetryIfAnyException()

@@ -34,7 +34,6 @@ class ExponentialBackoffRetryer
         inline T Retry(std::function<T()> func)
         {
             auto delay = _minDelay;
-            _spentTime = 0;
 			T result;
             while (true)
             {
@@ -46,7 +45,6 @@ class ExponentialBackoffRetryer
                 _spentTime += delay;
 
 				delay = CalculateNextDelay(delay);
-                printf("%i\n", delay);
             }
 			return result;
         }
@@ -67,11 +65,12 @@ class ExponentialBackoffRetryer
 			auto delay = min(currentDelay*_multiplier , _maxDelay);
 
 			std::random_device rd;
-			std::mt19937 e2(rd());
+			std::mt19937 prng(rd());
             std::normal_distribution<double> distribution(delay * _jitter);
-			auto randomPart = distribution(e2);
+			auto randomPart = distribution(prng);
 
 			delay += randomPart;
+			//printf("%i\n", (int)delay);
 			return (int)delay;
 		}
 
