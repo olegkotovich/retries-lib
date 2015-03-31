@@ -85,28 +85,31 @@ private:
 
 	template <typename T> inline bool ExecuteFunc(std::function<T()> func, std::function<bool(T result)> resultChecker, T &result)
 	{
-		try
+		auto fn = [&]() 
 		{
 			result = func();
 			bool isNeededResult = resultChecker(result);
 			return isNeededResult ? false : true;
-		}
-		catch (...)
-		{
-			if (!_retryIfAnyException || _spentTime >= _maxRetryTime)
-			{
-				throw;
-			}
-			return true;
-		}
+		};
+
+		return HandleExceptions(fn);
 	}
 
-	template <typename T> inline bool ExecuteFunc(std::function<T()> func)
+	inline bool ExecuteFunc(std::function<void()> func)
 	{
-		try
+		auto fn = [&]() 
 		{
 			func();
 			return false;
+		};
+		return HandleExceptions(fn);
+	}
+
+	inline bool HandleExceptions(std::function<bool()> func)
+	{
+		try
+		{
+			return func();
 		}
 		catch (...)
 		{
