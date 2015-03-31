@@ -24,7 +24,8 @@ public:
 		return this;
 	}
 
-	template <typename T> inline T WaitFor(std::function<bool(T result)> resultChecker, std::function<T()> func)
+	template <typename T> 
+	inline T WaitFor(std::function<bool(T result)> resultChecker, std::function<T()> func)
 	{
 		T result;
 
