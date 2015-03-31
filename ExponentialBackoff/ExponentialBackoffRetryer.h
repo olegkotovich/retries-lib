@@ -126,7 +126,7 @@ private:
 		{
 			result = func();
 			bool isNeededResult = resultChecker(result);
-			return isNeededResult ? false : true;
+			return isNeededResult ||  (_elapsedMilliseconds >= _maxRetryTime) ? false : true;
 		};
 
 		return HandleExceptions(fn);

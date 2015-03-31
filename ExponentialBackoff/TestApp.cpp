@@ -27,11 +27,11 @@ bool Connect(LPCTSTR server)
 
 	auto r = retrier
 		->RetryIfAnyException()
-		->WaitFor<bool>([](bool result){return result; }, fn);
+		->WaitFor<bool>([](bool result){return !result; }, fn);
 
-	retrier
+	/*retrier
 		->RetryIfAnyException()
-		->Retry([&](){ConnectWithoutReturnValue(server);});
+		->Retry([&](){ConnectWithoutReturnValue(server);});*/
 
     return false;
 }
