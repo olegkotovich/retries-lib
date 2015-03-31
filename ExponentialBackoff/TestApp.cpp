@@ -8,23 +8,30 @@
 
 using namespace std;
 
-void ConnectInternal(LPCTSTR server)
+void ConnectWithoutReturnValue(LPCTSTR server)
 {
 	throw "fvdfvdf";
     //return 3;
 }
 
+bool ConnectWithRetVal(LPCTSTR server)
+{
+	return true;
+}
+
 bool Connect(LPCTSTR server)
 {
-    auto fn = [&]() { ConnectInternal(server); };
+    auto fn = [&]() { return ConnectWithRetVal(server); };
 
 	std::unique_ptr<ExponentialBackoffRetryer> retrier(new ExponentialBackoffRetryer(500, 60*1000, 300*1000, 1.2, 0.01));
 
+	auto r = retrier
+		->RetryIfAnyException()
+		->WaitFor<bool>([](bool result){return result; }, fn);
+
 	retrier
 		->RetryIfAnyException()
-		->Retry(fn);
-		//->WaitFor<int>([](int result)->bool{return result == 2; }, fn);
- //          ->Retry(fn);
+		->Retry([&](){ConnectWithoutReturnValue(server);});
 
     return false;
 }

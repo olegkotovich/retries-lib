@@ -4,9 +4,21 @@
 #include <typeinfo> 
 #include <algorithm>
 
+/**
+* A ExponentialBackoffRetryer, which executes a call, and retries it using exponential-backoff algorithm until it succeeds, or
+* maximum retry time is reached or exceeded. 
+*/
 class ExponentialBackoffRetryer
 {
 public:
+	/**
+	* @param minDelay - the minimum delay to sleep
+	* @param maxDelay - the maximum delay to sleep
+	* @param maxRetryTime - the maximum time to execute retries. As this time is reached or exceeded
+	the last result will be returned or last exception will be thrown
+	* @param multiplier - the growth of the wait time between attempts might be controlled by modifying of multiplier.
+	* @param jitter - specifies random part of the wait time growth
+	*/
 	inline ExponentialBackoffRetryer(int minDelay, int maxDelay, int maxRetryTime, double multiplier, double jitter)
 	{
 		_minDelay = minDelay;
@@ -33,7 +45,7 @@ public:
 		{
 			bool shouldContinue = ExecuteFunc(func, resultChecker, result);
 			return shouldContinue;
-		}
+		};
 
 		RetryInternal([&](){return fn();});
 		return result;
