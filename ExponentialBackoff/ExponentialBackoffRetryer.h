@@ -26,37 +26,21 @@ public:
 
 	template <typename T> inline T WaitFor(std::function<bool(T result)> resultChecker, std::function<T()> func)
 	{
-		auto delay = _minDelay;
 		T result;
-		while (true)
+
+		auto fn = [&]()
 		{
 			bool shouldContinue = ExecuteFunc(func, resultChecker, result);
-
-			if (!shouldContinue) break;
-
-			Sleep(delay);
-			_spentTime += delay;
-
-			delay = CalculateNextDelay(delay);
+			return shouldContinue;
 		}
+
+		RetryInternal([&](){return fn();});
 		return result;
 	}
 
 	inline void Retry(std::function<void()> func)
 	{
-		auto delay = _minDelay;
-
-		while (true)
-		{
-			bool shouldContinue = ExecuteFunc(func);
-
-			if (!shouldContinue) break;
-
-			Sleep(delay);
-			_spentTime += delay;
-
-			delay = CalculateNextDelay(delay);
-		}
+		RetryInternal([&](){return ExecuteFunc(func);});
 	}
 
 private:
@@ -83,7 +67,26 @@ private:
 		return (int)delay;
 	}
 
-	template <typename T> inline bool ExecuteFunc(std::function<T()> func, std::function<bool(T result)> resultChecker, T &result)
+	inline void RetryInternal(std::function<bool()> func)
+	{
+		auto delay = _minDelay;
+
+		while (true)
+		{
+			bool shouldContinue = func();
+
+			if (!shouldContinue) break;
+
+			Sleep(delay);
+			_spentTime += delay;
+
+			delay = CalculateNextDelay(delay);
+		}
+	}
+
+	//Return bool that determines whether should we continue waiting.
+	template <typename T> 
+	inline bool ExecuteFunc(std::function<T()> func, std::function<bool(T result)> resultChecker, T &result)
 	{
 		auto fn = [&]() 
 		{
@@ -95,6 +98,7 @@ private:
 		return HandleExceptions(fn);
 	}
 
+	//Return bool that determines whether should we continue waiting.
 	inline bool ExecuteFunc(std::function<void()> func)
 	{
 		auto fn = [&]() 
