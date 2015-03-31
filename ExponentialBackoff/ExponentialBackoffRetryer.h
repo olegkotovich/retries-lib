@@ -26,8 +26,7 @@ public:
 		_maxRetryTime = maxRetryTime;
 		_multiplier = multiplier;
 		_jitter = jitter;
-		_spentTime = 0;
-		_retryIfAnyException = false;
+		Reset();
 	}
 
 	inline ExponentialBackoffRetryer* RetryIfAnyException()
@@ -56,6 +55,23 @@ public:
 		RetryInternal([&](){return ExecuteFunc(func);});
 	}
 
+	inline void Reset()
+	{
+		int _spentTime = 0;
+		bool _retryIfAnyException = false;
+		int _attemptsNumber = 0;
+	}
+
+	inline int ElapsedMilliseconds()
+	{
+		return _elapsedMilliseconds;
+	}
+
+	inline int AttemptsCount()
+	{
+		return _attemptsCount;
+	}
+
 private:
 	int _minDelay;
 	int _maxDelay;
@@ -63,8 +79,9 @@ private:
 	double _multiplier;
 	double _jitter;
 
-	int _spentTime;
+	int _elapsedMilliseconds;
 	bool _retryIfAnyException;
+	int _attemptsCount;
 
 	inline int CalculateNextDelay(int currentDelay)
 	{
@@ -82,16 +99,20 @@ private:
 
 	inline void RetryInternal(std::function<bool()> func)
 	{
+		_attemptsCount = 0;
+		_elapsedMilliseconds = 0;
 		auto delay = _minDelay;
 
 		while (true)
 		{
 			bool shouldContinue = func();
 
+			_attemptsCount++;
+
 			if (!shouldContinue) break;
 
 			Sleep(delay);
-			_spentTime += delay;
+			_elapsedMilliseconds += delay;
 
 			delay = CalculateNextDelay(delay);
 		}
@@ -130,7 +151,7 @@ private:
 		}
 		catch (...)
 		{
-			if (!_retryIfAnyException || _spentTime >= _maxRetryTime)
+			if (!_retryIfAnyException || _elapsedMilliseconds >= _maxRetryTime)
 			{
 				throw;
 			}
