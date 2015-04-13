@@ -93,7 +93,6 @@ private:
 		auto randomPart = distribution(prng);
 
 		delay += randomPart;
-		printf("%i\n", (int)delay);
 		return (int)delay;
 	}
 
