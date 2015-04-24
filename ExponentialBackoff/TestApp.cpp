@@ -16,6 +16,7 @@ void ConnectWithoutReturnValue(LPCTSTR server)
 
 bool ConnectWithRetVal(LPCTSTR server)
 {
+    throw "asdasda";
 	return true;
 }
 
@@ -23,11 +24,11 @@ bool Connect(LPCTSTR server)
 {
     auto fn = [&]() { return ConnectWithRetVal(server); };
 
-	std::unique_ptr<ExponentialBackoffRetryer> retrier(new ExponentialBackoffRetryer(500, 60*1000, 300*1000, 1.2, 0.01));
+	ExponentialBackoffRetryer retrier(500, 60*1000, 300*1000, 1.2, 0.01);
 
 	auto r = retrier
-		->RetryIfAnyException()
-		->WaitFor<bool>([](bool result){return !result; }, fn);
+		.RetryIfAnyException()
+		.WaitFor<bool>([](bool result){return !result; }, fn);
 
 	/*retrier
 		->RetryIfAnyException()

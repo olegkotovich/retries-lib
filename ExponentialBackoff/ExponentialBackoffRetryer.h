@@ -29,10 +29,10 @@ public:
 		Reset();
 	}
 
-	inline ExponentialBackoffRetryer* RetryIfAnyException()
+	inline ExponentialBackoffRetryer& RetryIfAnyException()
 	{
 		this->_retryIfAnyException = true;
-		return this;
+		return *this;
 	}
 
 	template <typename T> 
