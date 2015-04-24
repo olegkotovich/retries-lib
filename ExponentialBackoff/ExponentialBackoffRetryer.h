@@ -19,7 +19,7 @@ public:
 	* @param multiplier - the growth of the wait time between attempts might be controlled by modifying of multiplier.
 	* @param jitter - specifies random part of the wait time growth
 	*/
-	inline ExponentialBackoffRetryer(int minDelay, int maxDelay, int maxRetryTime, double multiplier, double jitter)
+	ExponentialBackoffRetryer(int minDelay, int maxDelay, int maxRetryTime, double multiplier, double jitter)
 	{
 		_minDelay = minDelay;
 		_maxDelay = maxDelay;
@@ -29,14 +29,14 @@ public:
 		Reset();
 	}
 
-	inline ExponentialBackoffRetryer& RetryIfAnyException()
+	ExponentialBackoffRetryer& RetryIfAnyException()
 	{
-		this->_retryIfAnyException = true;
+		_retryIfAnyException = true;
 		return *this;
 	}
 
 	template <typename T> 
-	inline T WaitFor(std::function<bool(T result)> resultChecker, std::function<T()> func)
+    T WaitFor(std::function<bool(T result)> resultChecker, std::function<T()> func)
 	{
 		T result;
 
@@ -50,24 +50,24 @@ public:
 		return result;
 	}
 
-	inline void Retry(std::function<void()> func)
+	void Retry(std::function<void()> func)
 	{
 		RetryInternal([&](){return ExecuteFunc(func);});
 	}
 
-	inline void Reset()
+	void Reset()
 	{
-		int _spentTime = 0;
-		bool _retryIfAnyException = false;
-		int _attemptsNumber = 0;
+		_elapsedMilliseconds = 0;
+		_retryIfAnyException = false;
+		_attemptsCount = 0;
 	}
 
-	inline int ElapsedMilliseconds()
+	int ElapsedMilliseconds()
 	{
 		return _elapsedMilliseconds;
 	}
 
-	inline int AttemptsCount()
+	int AttemptsCount()
 	{
 		return _attemptsCount;
 	}
@@ -83,7 +83,7 @@ private:
 	bool _retryIfAnyException;
 	int _attemptsCount;
 
-	inline int CalculateNextDelay(int currentDelay)
+	int CalculateNextDelay(int currentDelay)
 	{
 		auto delay = min(currentDelay * _multiplier, _maxDelay);
 
@@ -96,7 +96,7 @@ private:
 		return (int)delay;
 	}
 
-	inline void RetryInternal(std::function<bool()> func)
+	void RetryInternal(std::function<bool()> func)
 	{
 		_attemptsCount = 0;
 		_elapsedMilliseconds = 0;
@@ -119,7 +119,7 @@ private:
 
 	//Return bool that determines whether should we continue waiting.
 	template <typename T> 
-	inline bool ExecuteFunc(std::function<T()> func, std::function<bool(T result)> resultChecker, T &result)
+	bool ExecuteFunc(std::function<T()> func, std::function<bool(T result)> resultChecker, T &result)
 	{
 		auto fn = [&]() 
 		{
@@ -132,7 +132,7 @@ private:
 	}
 
 	//Return bool that determines whether should we continue waiting.
-	inline bool ExecuteFunc(std::function<void()> func)
+	bool ExecuteFunc(std::function<void()> func)
 	{
 		auto fn = [&]() 
 		{
@@ -142,7 +142,7 @@ private:
 		return HandleExceptions(fn);
 	}
 
-	inline bool HandleExceptions(std::function<bool()> func)
+	bool HandleExceptions(std::function<bool()> func)
 	{
 		try
 		{
