@@ -87,9 +87,9 @@ private:
 	{
 		auto delay = min(currentDelay * _multiplier, _maxDelay);
 
-		std::random_device rd;
-		std::mt19937 prng(rd());
-		std::normal_distribution<double> distribution(delay * _jitter);
+		static std::random_device rd;
+		static std::mt19937 prng(rd());
+		static std::normal_distribution<double> distribution(delay * _jitter);
 		auto randomPart = distribution(prng);
 
 		delay += randomPart;
